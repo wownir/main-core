@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>⛏ Шахта</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg:         #0a0b10;
+  --bg-card:    #14151f;
+  --bg-panel:   #1b1d2b;
+  --border:     #262838;
+  --amber:      #ff8a3d;
+  --amber-dim:  #d4621a;
+  --amber-glow: rgba(255,138,61,0.16);
+  --cyan:       #4ee3c0;
+  --cyan-dim:   #1c9a82;
+  --red:        #ff5577;
+  --green:      #4cd97b;
+  --purple:     #a974ff;
+  --text:       #f2f3f9;
+  --text-dim:   #868bab;
+  --text-muted: #454a66;
+  --radius:     18px;
+  --radius-sm:  12px;
+  --tab-h:      66px;
+  --header-h:   58px;
+  --font:       -apple-system,'SF Pro Display','Segoe UI',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-tap-highlight-color:transparent;}
+body{background-image:radial-gradient(circle at 15% 0%,rgba(255,138,61,0.07) 0%,transparent 45%),radial-gradient(circle at 85% 100%,rgba(78,227,192,0.06) 0%,transparent 45%);background-attachment:fixed;}
+button{border:none;cursor:pointer;font-family:var(--font);-webkit-tap-highlight-color:transparent;}
+input{font-family:var(--font);}
+
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+#header{height:var(--header-h);display:flex;align-items:center;padding:0 16px;gap:12px;background:rgba(20,21,31,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:10;}
+#pages{flex:1;overflow:hidden;position:relative;}
+.page{position:absolute;inset:0;overflow-y:auto;padding:14px 14px calc(var(--tab-h) + 14px);display:none;animation:fadein .2s ease;}
+.page.active{display:block;}
+#tabs{height:var(--tab-h);display:flex;background:rgba(20,21,31,0.92);backdrop-filter:blur(12px);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);}
+@keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+.hdr-avatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--amber),var(--amber-dim));display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;box-shadow:0 4px 14px rgba(255,138,61,0.3);}
+.hdr-info{flex:1;min-width:0;}
+.hdr-name{font-size:14px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hdr-sub{font-size:11px;color:var(--text-dim);margin-top:2px;}
+.hdr-coins{display:flex;align-items:center;gap:5px;background:var(--amber-glow);border:1px solid var(--amber-dim);border-radius:20px;padding:6px 12px;}
+.hdr-coins span{font-size:13px;font-weight:800;color:var(--amber);}
+.hdr-online-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0;}
+
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:none;color:var(--text-muted);transition:color .15s,background .15s;position:relative;}
+.tab .tab-icon{font-size:22px;line-height:1;transition:transform .15s;}
+.tab .tab-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.tab.active{color:var(--amber);}
+.tab.active .tab-icon{transform:translateY(-2px);}
+.tab.active::after{content:'';position:absolute;top:0;left:28%;right:28%;height:3px;background:var(--amber);border-radius:0 0 3px 3px;box-shadow:0 0 10px var(--amber);}
+.tab:active{background:rgba(255,255,255,.04);}
+
+/* ── ШАХТА ── */
+.mine-hero{position:relative;background:linear-gradient(160deg,#1c1d2c 0%,#0d0e16 100%);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;overflow:hidden;}
+.mine-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 120%,rgba(255,138,61,.10) 0%,transparent 70%);pointer-events:none;}
+.mine-shaft{text-align:center;margin-bottom:18px;}
+.shaft-anim{font-size:68px;display:block;animation:shaftpulse 3s ease-in-out infinite;filter:drop-shadow(0 0 16px rgba(255,138,61,.45));}
+@keyframes shaftpulse{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-5px) scale(1.05);}}
+.mine-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.mine-stat{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px;text-align:center;}
+.mine-stat .ms-val{font-size:16px;font-weight:800;color:var(--amber);}
+.mine-stat .ms-lbl{font-size:10px;color:var(--text-dim);margin-top:3px;}
+.xp-bar-wrap{margin-bottom:4px;}
+.xp-bar-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:6px;}
+.xp-bar{height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--cyan-dim),var(--cyan));border-radius:4px;transition:width .6s ease;box-shadow:0 0 8px var(--cyan);}
+
+.btn-mine{width:100%;padding:18px;border-radius:var(--radius);font-size:17px;font-weight:800;background:linear-gradient(135deg,var(--amber-dim),var(--amber));color:#0a0b10;letter-spacing:.4px;position:relative;overflow:hidden;transition:transform .1s,box-shadow .2s;box-shadow:0 6px 24px rgba(255,138,61,.35);}
+.btn-mine:active{transform:scale(.97);box-shadow:0 2px 10px rgba(255,138,61,.2);}
+.btn-mine::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.14) 0%,transparent 50%);pointer-events:none;}
+.btn-mine.cooldown{background:linear-gradient(135deg,#23253a,#1b1d2b);color:var(--text-dim);box-shadow:none;}
+.mine-cd-ring{display:none;width:100%;justify-content:center;margin-top:8px;}
+.mine-cd-ring.show{display:flex;}
+.cd-text{font-size:12px;color:var(--text-muted);}
+
+.mine-result{border-radius:var(--radius);padding:15px;margin-top:10px;border:1px solid;display:none;}
+.mine-result.show{display:block;animation:popIn .25s cubic-bezier(.34,1.56,.64,1);}
+@keyframes popIn{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+.mine-result.common{background:rgba(134,139,171,.07);border-color:#454a66;}
+.mine-result.rare{background:rgba(78,227,192,.07);border-color:var(--cyan-dim);}
+.mine-result.epic{background:rgba(169,116,255,.09);border-color:var(--purple);}
+.mine-result.legend{background:rgba(255,138,61,.09);border-color:var(--amber-dim);box-shadow:0 0 24px rgba(255,138,61,.14);}
+.result-ore{font-size:30px;}
+.result-name{font-size:15px;font-weight:800;margin:6px 0 2px;}
+.result-val{font-size:13px;color:var(--amber);}
+.result-xp{font-size:12px;color:var(--cyan);}
+.result-event{font-size:11px;color:var(--green);margin-top:5px;background:rgba(76,217,123,.1);border-radius:8px;padding:4px 9px;display:inline-block;}
+
+.section-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.badge{background:var(--amber);color:#0a0b10;border-radius:10px;padding:2px 8px;font-size:11px;font-weight:800;}
+
+/* ── ІНВЕНТАР ── */
+.inv-cap{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;margin-bottom:10px;}
+.inv-bar-row{display:flex;align-items:center;gap:10px;}
+.inv-bar-bg{flex:1;height:9px;background:var(--border);border-radius:5px;overflow:hidden;}
+.inv-bar-fill{height:100%;border-radius:5px;transition:width .4s;}
+.inv-bar-lbl{font-size:12px;color:var(--text-dim);white-space:nowrap;font-weight:600;}
+.inv-list{display:flex;flex-direction:column;gap:7px;}
+.inv-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;display:flex;align-items:center;gap:11px;}
+.inv-item .ore-icon{font-size:27px;flex-shrink:0;}
+.inv-item .ore-info{flex:1;min-width:0;}
+.inv-item .ore-name{font-size:13px;font-weight:700;color:var(--text);}
+.inv-item .ore-cnt{font-size:11px;color:var(--text-dim);margin-top:1px;}
+.inv-item .ore-val{font-size:13px;font-weight:800;color:var(--amber);text-align:right;}
+.inv-actions{display:flex;gap:8px;margin-top:10px;}
+.btn-sell-all{flex:1;padding:14px;border-radius:var(--radius-sm);background:var(--amber-glow);border:1px solid var(--amber-dim);color:var(--amber);font-weight:800;font-size:14px;width:100%;text-align:center;}
+.btn-sell-all:active{opacity:.8;}
+.inv-empty{text-align:center;padding:44px 0;color:var(--text-muted);}
+.inv-empty .ie-icon{font-size:50px;margin-bottom:14px;display:block;opacity:.7;}
+
+/* ── РИНОК ── */
+.market-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;}
+.market-rate{display:flex;align-items:baseline;gap:8px;margin-bottom:10px;}
+.rate-val{font-size:33px;font-weight:900;color:var(--amber);line-height:1;}
+.rate-x{font-size:14px;color:var(--text-dim);}
+.rate-status{font-size:12px;font-weight:800;padding:4px 10px;border-radius:12px;}
+.rate-status.boom{background:rgba(76,217,123,.13);color:var(--green);}
+.rate-status.crash{background:rgba(255,85,119,.13);color:var(--red);}
+.rate-status.stable{background:rgba(78,227,192,.1);color:var(--cyan);}
+.spark-chart{display:flex;align-items:flex-end;gap:3px;height:38px;margin:10px 0;}
+.spark-bar{flex:1;background:var(--amber-dim);border-radius:3px 3px 0 0;min-height:3px;transition:height .3s;opacity:.6;}
+.spark-bar.active{background:var(--amber);opacity:1;}
+.market-tip{font-size:11px;color:var(--text-dim);background:rgba(255,255,255,.03);padding:9px 11px;border-radius:var(--radius-sm);border-left:3px solid var(--amber-dim);line-height:1.5;}
+
+/* ── ПРОФІЛЬ ── */
+.profile-hero{background:linear-gradient(135deg,#181a28,#1e2034);border:1px solid var(--border);border-radius:var(--radius);padding:22px 18px;text-align:center;margin-bottom:12px;position:relative;overflow:hidden;}
+.profile-hero::before{content:'';position:absolute;top:-50px;left:50%;transform:translateX(-50%);width:220px;height:220px;border-radius:50%;background:radial-gradient(var(--amber-glow),transparent 70%);pointer-events:none;}
+.profile-avatar{font-size:54px;display:block;margin-bottom:10px;filter:drop-shadow(0 4px 14px rgba(255,138,61,.35));}
+.profile-name{font-size:21px;font-weight:900;color:var(--text);}
+.profile-prefix{font-size:12px;color:var(--amber);margin-bottom:10px;font-weight:600;}
+.profile-level{display:inline-flex;align-items:center;gap:6px;background:var(--amber-glow);border:1px solid var(--amber-dim);border-radius:20px;padding:5px 14px;}
+.profile-level span{font-size:13px;font-weight:800;color:var(--amber);}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;text-align:center;}
+.stat-card .sv{font-size:18px;font-weight:800;color:var(--text);}
+.stat-card .sl{font-size:10px;color:var(--text-dim);margin-top:3px;text-transform:uppercase;letter-spacing:.5px;}
+
+/* ── МАГАЗИН ── */
+.shop-cats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.shop-cat{background:var(--bg-card);border:2px solid var(--border);border-radius:var(--radius);padding:15px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;}
+.shop-cat.active{border-color:var(--amber);background:var(--amber-glow);}
+.shop-cat .sc-ico{font-size:28px;display:block;margin-bottom:6px;}
+.shop-cat .sc-lbl{font-size:12px;font-weight:800;color:var(--text-dim);}
+.shop-cat.active .sc-lbl{color:var(--amber);}
+.shop-items{display:flex;flex-direction:column;gap:8px;}
+.shop-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px 14px;display:flex;align-items:center;gap:11px;}
+.shop-item.locked{opacity:.5;}
+.si-icon{font-size:28px;flex-shrink:0;}
+.si-body{flex:1;min-width:0;}
+.si-name{font-size:13px;font-weight:700;color:var(--text);}
+.si-sub{font-size:11px;color:var(--text-dim);margin-top:2px;}
+.btn-buy{padding:9px 15px;border-radius:var(--radius-sm);background:var(--amber);color:#0a0b10;font-size:12px;font-weight:800;white-space:nowrap;flex-shrink:0;transition:opacity .15s;}
+.btn-buy:active{opacity:.8;}
+.btn-buy.locked{background:var(--border);color:var(--text-muted);}
+
+/* ── ІГРИ ── */
+.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.act-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 12px;text-align:center;cursor:pointer;transition:border-color .15s,transform .1s;position:relative;overflow:hidden;}
+.act-card:active{transform:scale(.97);}
+.act-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .15s;}
+.act-card.amber-g::before{background:radial-gradient(ellipse at 50% 100%,var(--amber-glow),transparent);}
+.act-card.cyan-g::before{background:radial-gradient(ellipse at 50% 100%,rgba(78,227,192,.12),transparent);}
+.act-card.purple-g::before{background:radial-gradient(ellipse at 50% 100%,rgba(169,116,255,.12),transparent);}
+.act-card.green-g::before{background:radial-gradient(ellipse at 50% 100%,rgba(76,217,123,.12),transparent);}
+.act-card:active::before{opacity:1;}
+.act-icon{font-size:38px;display:block;margin-bottom:9px;}
+.act-title{font-size:13px;font-weight:800;color:var(--text);}
+.act-sub{font-size:11px;color:var(--text-dim);margin-top:3px;}
+
+/* ── КЛАН ── */
+.clan-hero{background:linear-gradient(135deg,#1c1530,#231b38);border:1px solid #3d2d6e;border-radius:var(--radius);padding:20px;margin-bottom:10px;text-align:center;}
+.clan-name{font-size:22px;font-weight:900;color:var(--purple);margin-bottom:4px;}
+.clan-level{font-size:12px;color:var(--text-dim);}
+.clan-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0;}
+.cstat{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px;text-align:center;}
+.cstat .cv{font-size:15px;font-weight:800;color:var(--text);}
+.cstat .cl{font-size:10px;color:var(--text-dim);text-transform:uppercase;}
+.mission-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:15px;margin-bottom:10px;}
+.mission-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:9px;}
+.mission-bar-bg{height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin-bottom:6px;}
+.mission-bar-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));border-radius:5px;transition:width .5s;}
+.mission-nums{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);}
+.members-list{display:flex;flex-direction:column;gap:7px;}
+.member-item{display:flex;align-items:center;gap:11px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;}
+.member-ava{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3d2d6e,#7c4dff);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.member-info{flex:1;}
+.member-name{font-size:13px;font-weight:700;}
+.member-rank{font-size:11px;color:var(--text-dim);margin-top:1px;}
+.no-clan-card{text-align:center;padding:36px 20px;background:var(--bg-card);border-radius:var(--radius);border:1px dashed var(--border);}
+.no-clan-icon{font-size:54px;display:block;margin-bottom:14px;opacity:.6;}
+.no-clan-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.no-clan-desc{font-size:13px;color:var(--text-dim);line-height:1.6;}
+.btn-join-clan{margin-top:16px;padding:14px 28px;border-radius:var(--radius-sm);background:var(--purple);color:#fff;font-weight:800;font-size:14px;}
+
+/* ── КРАФТ / ТОП / АУКЦІОН ── */
+.sub-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+.sub-tabs::-webkit-scrollbar{display:none;}
+.sub-tab{padding:8px 15px;border-radius:20px;border:1px solid var(--border);background:none;color:var(--text-dim);font-size:12px;font-weight:800;white-space:nowrap;flex-shrink:0;transition:all .15s;}
+.sub-tab.active{background:var(--amber-glow);border-color:var(--amber-dim);color:var(--amber);}
+.craft-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:8px;}
+.craft-name{font-size:13px;font-weight:700;margin-bottom:7px;display:flex;justify-content:space-between;}
+.craft-xp{font-size:11px;color:var(--cyan);}
+.craft-needs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px;}
+.need-tag{padding:4px 9px;border-radius:8px;font-size:11px;font-weight:700;}
+.need-tag.ok{background:rgba(76,217,123,.1);border:1px solid rgba(76,217,123,.3);color:var(--green);}
+.need-tag.miss{background:rgba(255,85,119,.1);border:1px solid rgba(255,85,119,.3);color:var(--red);}
+.btn-craft{width:100%;padding:11px;border-radius:var(--radius-sm);font-size:13px;font-weight:800;}
+.btn-craft.can{background:var(--cyan);color:#0a0b10;}
+.btn-craft.cant{background:var(--border);color:var(--text-muted);}
+.top-item{display:flex;align-items:center;gap:11px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;margin-bottom:7px;}
+.top-medal{font-size:20px;width:28px;text-align:center;flex-shrink:0;}
+.top-info{flex:1;}
+.top-name{font-size:13px;font-weight:700;}
+.top-sub{font-size:11px;color:var(--text-dim);margin-top:1px;}
+.top-val{font-size:14px;font-weight:800;color:var(--amber);}
+.auc-item{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;margin-bottom:8px;display:flex;align-items:center;gap:11px;}
+.auc-ore{font-size:28px;flex-shrink:0;}
+.auc-info{flex:1;}
+.auc-name{font-size:13px;font-weight:700;}
+.auc-seller{font-size:11px;color:var(--text-dim);margin-top:2px;}
+.auc-right{text-align:right;}
+.auc-price{font-size:14px;font-weight:800;color:var(--amber);}
+.btn-auc-buy{margin-top:5px;padding:7px 13px;border-radius:8px;background:var(--amber);color:#0a0b10;font-size:11px;font-weight:800;}
+
+/* ── МОДАЛКИ ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(5,6,10,.75);backdrop-filter:blur(3px);z-index:100;display:none;align-items:flex-end;}
+.modal-overlay.open{display:flex;}
+.modal-sheet{background:var(--bg-panel);border-radius:24px 24px 0 0;width:100%;padding:22px 18px 36px;animation:slideup .25s cubic-bezier(.34,1.56,.64,1);position:relative;max-height:85vh;overflow-y:auto;border-top:1px solid var(--border);}
+@keyframes slideup{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-handle{width:38px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
+.modal-title{font-size:18px;font-weight:900;margin-bottom:18px;text-align:center;}
+.btn-close{position:absolute;top:18px;right:18px;background:var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;border:none;color:var(--text-dim);}
+
+/* слоти */
+.slot-display{display:flex;justify-content:center;gap:10px;margin:16px 0;}
+.slot-reel{width:74px;height:82px;background:var(--bg-card);border:2px solid var(--border);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:40px;position:relative;overflow:hidden;}
+.slot-reel.spinning::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 0%,rgba(255,138,61,.08) 50%,transparent 100%);animation:scanline 0.3s linear infinite;}
+@keyframes scanline{from{transform:translateY(-100%);}to{transform:translateY(100%);}}
+.bet-input-row{display:flex;gap:8px;margin-top:12px;}
+.bet-input{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;color:var(--text);font-size:15px;outline:none;}
+.bet-input:focus{border-color:var(--amber);}
+.btn-go{padding:13px 20px;border-radius:var(--radius-sm);background:var(--amber);color:#0a0b10;font-weight:800;font-size:14px;}
+.game-result{background:var(--bg-card);border-radius:var(--radius-sm);padding:15px;margin-top:12px;text-align:center;border:1px solid var(--border);display:none;}
+.game-result.show{display:block;animation:popIn .2s ease;}
+.gr-outcome{font-size:16px;font-weight:800;margin-bottom:4px;}
+.gr-amount{font-size:22px;font-weight:900;}
+.gr-amount.win{color:var(--green);}
+.gr-amount.loss{color:var(--red);}
+
+/* оракул */
+.oracle-display{text-align:center;padding:18px 0;}
+.oracle-orb{width:104px;height:104px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#7c4dff,#2d1a6b);box-shadow:0 0 34px rgba(169,116,255,.45);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:44px;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+.oracle-orb:active{transform:scale(.95);}
+.oracle-val{font-size:36px;font-weight:900;color:var(--purple);}
+.oracle-bar{height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin:12px 0;}
+.oracle-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--purple),var(--cyan));transition:width .8s cubic-bezier(.34,1.56,.64,1);}
+.oracle-msg{font-size:14px;color:var(--text-dim);font-style:italic;line-height:1.5;}
+
+/* яйце */
+.egg-display{text-align:center;padding:22px 0;}
+.egg-icon{font-size:82px;display:block;cursor:pointer;transition:transform .15s;filter:drop-shadow(0 0 18px rgba(255,138,61,.35));}
+.egg-icon:active{transform:scale(.9) rotate(-5deg);}
+.egg-icon.shake{animation:eggShake .4s ease;}
+@keyframes eggShake{0%,100%{transform:rotate(0);}20%{transform:rotate(-12deg) scale(.95);}40%{transform:rotate(12deg) scale(1.05);}60%{transform:rotate(-8deg);}80%{transform:rotate(8deg);}}
+
+/* бонус */
+.bonus-card{background:linear-gradient(135deg,var(--bg-card),#221f3a);border:1px solid var(--amber-dim);border-radius:var(--radius);padding:20px;text-align:center;position:relative;overflow:hidden;}
+.bonus-card::after{content:'🎁';position:absolute;right:-10px;bottom:-10px;font-size:68px;opacity:.07;}
+.bonus-timer{font-size:13px;color:var(--text-dim);margin-top:8px;}
+.btn-claim{width:100%;padding:15px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--amber-dim),var(--amber));color:#0a0b10;font-weight:800;font-size:15px;margin-top:14px;}
+.btn-claim:disabled{opacity:.4;cursor:not-allowed;}
+
+/* промо */
+.promo-row{display:flex;gap:8px;margin-top:10px;}
+.promo-input{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:13px;color:var(--text);font-size:14px;outline:none;text-transform:uppercase;}
+.promo-input:focus{border-color:var(--amber);}
+.btn-promo{padding:13px 18px;border-radius:var(--radius-sm);background:var(--amber);color:#0a0b10;font-weight:800;font-size:14px;}
+
+/* утиліти */
+.divider{height:1px;background:var(--border);margin:14px 0;}
+.toast{position:fixed;top:calc(var(--header-h) + 8px);left:50%;transform:translateX(-50%) translateY(-80px);background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:11px 20px;font-size:13px;font-weight:700;z-index:200;white-space:nowrap;transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.4);}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+.pulse-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;animation:pulse 1.8s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(76,217,123,.4);}50%{opacity:.8;box-shadow:0 0 0 5px rgba(76,217,123,0);}}
+.particles{position:fixed;pointer-events:none;z-index:300;inset:0;}
+.particle{position:absolute;font-size:16px;animation:particleUp .8s ease-out forwards;}
+@keyframes particleUp{from{transform:translateY(0) scale(1);opacity:1;}to{transform:translateY(-80px) scale(0.5);opacity:0;}}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px;}
+.loading-icon{font-size:54px;animation:shaftpulse 1.5s ease-in-out infinite;}
+.loading-text{font-size:14px;color:var(--text-dim);}
+.spin{animation:rotate 1s linear infinite;display:inline-block;}
+@keyframes rotate{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading-overlay">
+  <span class="loading-icon">⛏️</span>
+  <div class="loading-text"><span class="spin">⚙️</span> Завантаження шахти...</div>
+</div>
+
+<div id="app" style="display:none;">
+  <header id="header">
+    <div class="hdr-avatar">⛏</div>
+    <div class="hdr-info">
+      <div class="hdr-name" id="hdr-name">Гірник</div>
+      <div class="hdr-sub"><span class="pulse-dot"></span><span id="hdr-lvl">Рівень 1</span></div>
+    </div>
+    <div class="hdr-coins">
+      <span>🪙</span>
+      <span id="hdr-coins">0</span>
+    </div>
+    <div class="hdr-online-dot"></div>
+  </header>
+
+  <div id="pages">
+
+    <!-- ШАХТА -->
+    <div class="page active" id="page-mine">
+      <div class="mine-hero">
+        <div class="mine-shaft">
+          <span class="shaft-anim" id="mine-emoji">⛏️</span>
+        </div>
+        <div class="mine-stats">
+          <div class="mine-stat">
+            <div class="ms-val" id="mine-stat-mined">0</div>
+            <div class="ms-lbl">Видобуто руд</div>
+          </div>
+          <div class="mine-stat">
+            <div class="ms-val" id="mine-stat-pick">Руки</div>
+            <div class="ms-lbl">Інструмент</div>
+          </div>
+          <div class="mine-stat">
+            <div class="ms-val" id="mine-stat-luck">0 🍀</div>
+            <div class="ms-lbl">Удача</div>
+          </div>
+          <div class="mine-stat">
+            <div class="ms-val" id="mine-stat-inv">0/15</div>
+            <div class="ms-lbl">Рюкзак</div>
+          </div>
+        </div>
+        <div class="xp-bar-wrap">
+          <div class="xp-bar-lbl">
+            <span>XP</span>
+            <span id="xp-nums">0 / 500</span>
+          </div>
+          <div class="xp-bar"><div class="xp-fill" id="xp-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <button class="btn-mine" id="btn-mine" onclick="doMine(event)">⛏ КОПАТИ!</button>
+      <div class="mine-cd-ring" id="mine-cd"><span class="cd-text">⌛ <span id="cd-sec">0</span> сек</span></div>
+      <div class="mine-result" id="mine-result">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="result-ore" id="res-ore">🪨</div>
+          <div>
+            <div class="result-name" id="res-name">Кругляк</div>
+            <div class="result-val" id="res-val">💰 50 🪙</div>
+            <div class="result-xp" id="res-xp">⭐ +2 XP</div>
+            <div class="result-event" id="res-event" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ІНВЕНТАР -->
+    <div class="page" id="page-inventory">
+      <div class="section-title">🎒 Твій Інвентар <span class="badge" id="inv-badge">0</span></div>
+      <div class="inv-cap">
+        <div class="inv-bar-row">
+          <div class="inv-bar-bg">
+            <div class="inv-bar-fill" id="inv-bar-fill" style="width:0%;background:var(--amber)"></div>
+          </div>
+          <div class="inv-bar-lbl" id="inv-bar-lbl">0 / 15</div>
+        </div>
+      </div>
+      <div class="market-card">
+        <div class="section-title">📈 Біржа Руди</div>
+        <div class="market-rate">
+          <div class="rate-val" id="market-mult">x1.00</div>
+          <div class="rate-x">множник ринку</div>
+          <div class="rate-status stable" id="market-status">СТАБІЛЬНИЙ</div>
+        </div>
+        <div class="spark-chart" id="spark-chart"></div>
+        <div class="market-tip">⚠️ Ціни коливаються! Продавай під час 🔥 Буму та остерігайся 💀 Кризи!</div>
+      </div>
+      <div class="inv-actions">
+        <button class="btn-sell-all" onclick="sellAll()">💰 ПРОДАТИ ВСЕ</button>
+      </div>
+      <div class="divider"></div>
+      <div id="inventory-list" class="inv-list"></div>
+    </div>
+
+    <!-- МАГАЗИН -->
+    <div class="page" id="page-shop">
+      <div class="shop-cats">
+        <div class="shop-cat active" id="sc-pick" onclick="switchShopCat('pick')">
+          <span class="sc-ico">⛏️</span><span class="sc-lbl">Кирки</span>
+        </div>
+        <div class="shop-cat" id="sc-bag" onclick="switchShopCat('bag')">
+          <span class="sc-ico">🎒</span><span class="sc-lbl">Сумки</span>
+        </div>
+        <div class="shop-cat" id="sc-buff" onclick="switchShopCat('buff')">
+          <span class="sc-ico">🧪</span><span class="sc-lbl">Зілля</span>
+        </div>
+        <div class="shop-cat" id="sc-special" onclick="switchShopCat('special')">
+          <span class="sc-ico">💎</span><span class="sc-lbl">VIP</span>
+        </div>
+      </div>
+      <div class="shop-items" id="shop-items-list"></div>
+    </div>
+
+    <!-- ІГРИ -->
+    <div class="page" id="page-activities">
+      <div class="section-title">⚔️ Підземні Розваги</div>
+      <div class="act-grid">
+        <div class="act-card amber-g" onclick="openModal('casino')">
+          <span class="act-icon">🎰</span>
+          <div class="act-title">Казино Фортуна</div>
+          <div class="act-sub">Слоти</div>
+        </div>
+        <div class="act-card cyan-g" onclick="openModal('oracle')">
+          <span class="act-icon">🔮</span>
+          <div class="act-title">Оракул Удачі</div>
+          <div class="act-sub">Бафф на видобуток</div>
+        </div>
+        <div class="act-card green-g" onclick="openModal('egg')">
+          <span class="act-icon">🥚</span>
+          <div class="act-title">Загадкове Яйце</div>
+          <div class="act-sub">Кожні 2 хвилини</div>
+        </div>
+        <div class="act-card purple-g" onclick="openModal('bonus')">
+          <span class="act-icon">🎁</span>
+          <div class="act-title">Щоденний Бонус</div>
+          <div class="act-sub">Раз на добу</div>
+        </div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:10px;">
+        <div class="section-title">🎟 Промокод</div>
+        <div class="promo-row">
+          <input class="promo-input" id="promo-input" placeholder="ВВЕДИ КОД" maxlength="20">
+          <button class="btn-promo" onclick="applyPromo()">ЗАСТОСУВАТИ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- КРАФТ / ТОП / АУКЦІОН -->
+    <div class="page" id="page-extra">
+      <div class="sub-tabs">
+        <button class="sub-tab active" id="stab-craft" onclick="switchExtraTab('craft')">🛠️ Крафт</button>
+        <button class="sub-tab" id="stab-top" onclick="switchExtraTab('top')">🏆 ТОП</button>
+        <button class="sub-tab" id="stab-auc" onclick="switchExtraTab('auc')">⚖️ Аукціон</button>
+      </div>
+      <div id="extra-craft-view"></div>
+      <div id="extra-top-view" style="display:none;"></div>
+      <div id="extra-auc-view" style="display:none;"></div>
+    </div>
+
+    <!-- КЛАН -->
+    <div class="page" id="page-clan">
+      <div id="clan-section-none" class="no-clan-card">
+        <span class="no-clan-icon">🏰</span>
+        <div class="no-clan-title">Ти не в клані</div>
+        <div class="no-clan-desc">Приєднуйся до кланів, щоб виконувати спільні місії та отримувати бонуси!</div>
+        <div style="margin-top:14px;font-size:12px;color:var(--text-dim);">Використай команду в боті:<br><strong style="color:var(--amber);">/clan_create Назва</strong> або <strong style="color:var(--amber);">вступити Назва</strong></div>
+      </div>
+      <div id="clan-section-joined" style="display:none;">
+        <div class="clan-hero">
+          <div class="clan-name" id="clan-name-el">—</div>
+          <div class="clan-level" id="clan-level-el">Рівень 1</div>
+          <div class="clan-stats">
+            <div class="cstat"><div class="cv" id="clan-members-el">—</div><div class="cl">Гравці</div></div>
+            <div class="cstat"><div class="cv" id="clan-balance-el">0 🪙</div><div class="cl">Казна</div></div>
+            <div class="cstat"><div class="cv" id="clan-exp-el">0</div><div class="cl">XP</div></div>
+          </div>
+        </div>
+        <div class="mission-card">
+          <div class="mission-title" id="mission-title-el">🎯 Денна місія: Збір монет</div>
+          <div class="mission-bar-bg"><div class="mission-bar-fill" id="mission-bar-el" style="width:0%"></div></div>
+          <div class="mission-nums">
+            <span id="mission-progress-el">0 / 1,000,000 🪙</span>
+            <span id="mission-status-el">В процесі</span>
+          </div>
+        </div>
+        <div class="section-title">👥 Учасники</div>
+        <div class="members-list" id="clan-members-list"></div>
+      </div>
+    </div>
+
+    <!-- ПРОФІЛЬ -->
+    <div class="page" id="page-profile">
+      <div class="profile-hero">
+        <span class="profile-avatar">👷‍♂️</span>
+        <div class="profile-name" id="prof-name">Гірник</div>
+        <div class="profile-prefix" id="prof-prefix">🆕[Гірник]</div>
+        <div class="profile-level"><span id="prof-lvl">Рівень 1</span></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="sv" id="stat-mined">0</div><div class="sl">Видобуто руд</div></div>
+        <div class="stat-card"><div class="sv" id="stat-coins">0 🪙</div><div class="sl">Монет зараз</div></div>
+        <div class="stat-card"><div class="sv" id="stat-casino-win">0 🪙</div><div class="sl">Виграш у казино</div></div>
+        <div class="stat-card"><div class="sv" id="stat-casino-loss">0 🪙</div><div class="sl">Програш у казино</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <nav id="tabs">
+    <button class="tab active" onclick="switchPage('mine',this)"><span class="tab-icon">⛏️</span><span class="tab-lbl">Шахта</span></button>
+    <button class="tab" onclick="switchPage('inventory',this)"><span class="tab-icon">🎒</span><span class="tab-lbl">Склад</span></button>
+    <button class="tab" onclick="switchPage('shop',this)"><span class="tab-icon">🛒</span><span class="tab-lbl">Ринок</span></button>
+    <button class="tab" onclick="switchPage('activities',this)"><span class="tab-icon">🎰</span><span class="tab-lbl">Ігри</span></button>
+    <button class="tab" onclick="switchPage('extra',this);loadExtra()"><span class="tab-icon">🛠️</span><span class="tab-lbl">Крафт</span></button>
+    <button class="tab" onclick="switchPage('clan',this);loadClan()"><span class="tab-icon">🏰</span><span class="tab-lbl">Клан</span></button>
+    <button class="tab" onclick="switchPage('profile',this)"><span class="tab-icon">👤</span><span class="tab-lbl">Профіль</span></button>
+  </nav>
+</div>
+
+<!-- МОДАЛКА: КАЗИНО -->
+<div class="modal-overlay" id="modal-casino">
+  <div class="modal-sheet">
+    <button class="btn-close" onclick="closeModal('casino')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎰 Слоти</div>
+    <div class="slot-display">
+      <div class="slot-reel" id="reel-1">💎</div>
+      <div class="slot-reel" id="reel-2">💎</div>
+      <div class="slot-reel" id="reel-3">💎</div>
+    </div>
+    <div class="bet-input-row">
+      <input type="number" class="bet-input" id="casino-bet" placeholder="Ставка 🪙" value="100" min="100">
+      <button class="btn-go" onclick="spinCasino()">КРУТИТИ</button>
+    </div>
+    <div class="game-result" id="casino-res">
+      <div class="gr-outcome" id="c-out">ВИГРАШ!</div>
+      <div class="gr-amount win" id="c-amt">+200 🪙</div>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА: ОРАКУЛ -->
+<div class="modal-overlay" id="modal-oracle">
+  <div class="modal-sheet">
+    <button class="btn-close" onclick="closeModal('oracle')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔮 Оракул Підземелля</div>
+    <div class="oracle-display">
+      <div class="oracle-orb" onclick="consultOracle()">🔮</div>
+      <div class="oracle-val" id="oracle-val">??%</div>
+      <div class="oracle-bar"><div class="oracle-fill" id="oracle-fill" style="width:0%"></div></div>
+      <div class="oracle-msg" id="oracle-msg">Торкнися сфери, щоб отримати бафф удачі...</div>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА: ЯЙЦЕ -->
+<div class="modal-overlay" id="modal-egg">
+  <div class="modal-sheet">
+    <button class="btn-close" onclick="closeModal('egg')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">🥚 Загадкове Яйце</div>
+    <div class="egg-display">
+      <span class="egg-icon" id="egg-icon" onclick="clickEgg()">🥚</span>
+      <div class="xp-bar-lbl" style="margin-top:15px;">
+        <span>Результат:</span><span id="egg-result">Натисни на яйце!</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА: БОНУС -->
+<div class="modal-overlay" id="modal-bonus">
+  <div class="modal-sheet">
+    <button class="btn-close" onclick="closeModal('bonus')">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">🎁 Щоденний Бонус</div>
+    <div class="bonus-card">
+      <div style="font-size:13px;color:var(--text-dim);">Бонус залежить від твого рівня: <strong style="color:var(--amber);">5,000 + рівень × 1,000 🪙</strong></div>
+      <div class="bonus-timer" id="bonus-timer">Перевірка...</div>
+      <button class="btn-claim" id="btn-claim-bonus" onclick="claimBonus()">ЗАБРАТИ БОНУС</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="particles" id="particles"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// КОНФІГ
+// ═══════════════════════════════════════════════
+const API_BASE = "https://wownir.github.io/mine-mini-app/"; // той самий сервер, де лежить html. Якщо окремий — вкажи URL, напр. "http://localhost:8080"
+
+const MEDALS  = ["🥇","🥈","🥉","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟"];
+const ORE_RARITY = { // для класів відображення
+  Common:"common", Coal:"common", Copper:"common",
+  Iron:"rare", Rare:"rare", Gold:"rare",
+  Ruby:"epic", Amethyst:"epic", Emerald:"epic",
+  Obsidian:"legend", Mythic:"legend", Legendary:"legend",
+  Divine:"legend", Singularity:"legend"
+};
+
+// ═══════════════════════════════════════════════
+// СТАН
+// ═══════════════════════════════════════════════
+let state         = null;   // поточний стан гравця з сервера
+let shopItems     = {};     // каталог магазину
+let oreTypes      = {};     // типи руди
+let craftRecipes  = {};     // рецепти крафту
+let marketHistory = [1.0, 1.05, 0.95, 1.1, 1.0, 1.2, 1.15];
+let isMining      = false;
+let currentShopCat= "pick";
+let currentExtraTab = "craft";
+let tgInitData    = "";
+
+// ═══════════════════════════════════════════════
+// TELEGRAM WebApp
+// ═══════════════════════════════════════════════
+const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+if (tg) {
+  tg.expand();
+  tgInitData = tg.initData || "";
+}
+
+// ═══════════════════════════════════════════════
+// API КЛІЄНТ
+// ═══════════════════════════════════════════════
+async function apiCall(path, method = "GET", body = null) {
+  const opts = {
+    method,
+    headers: { "Content-Type": "application/json" }
+  };
+  // Передаємо Telegram initData для авторизації
+  if (tgInitData) {
+    opts.headers["X-Telegram-Init-Data"] = tgInitData;
+  } else {
+    // DEV режим — debug_uid з Telegram
+    const uid = tg && tg.initDataUnsafe && tg.initDataUnsafe.user
+      ? tg.initDataUnsafe.user.id : null;
+    if (uid) opts.headers["X-Telegram-Init-Data"] = `debug_uid=${uid}`;
+  }
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API_BASE + path, opts);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+// ═══════════════════════════════════════════════
+// ІНІЦІАЛІЗАЦІЯ
+// ═══════════════════════════════════════════════
+async function init() {
+  try {
+    // Паралельно завантажуємо каталоги і стан гравця
+    const [stateRes, shopRes, oreRes, craftRes, mktRes] = await Promise.all([
+      apiCall("/api/state"),
+      apiCall("/api/shop/items"),
+      apiCall("/api/ore_types"),
+      apiCall("/api/craft/recipes"),
+      apiCall("/api/market")
+    ]);
+
+    if (stateRes.ok)  state       = stateRes.user;
+    if (shopRes.ok)   shopItems   = shopRes.items;
+    if (oreRes.ok)    oreTypes    = oreRes.ores;
+    if (craftRes.ok)  craftRecipes= craftRes.recipes;
+    if (mktRes.ok) {
+      marketHistory = [...(mktRes.history || []), mktRes.multiplier];
+      if (marketHistory.length > 15) marketHistory = marketHistory.slice(-15);
+    }
+
+    if (!state) throw new Error("Не вдалося отримати профіль");
+
+    updateUI();
+    renderInventory();
+    renderShop();
+    renderCraft();
+    generateSparkline(mktRes.multiplier || 1.0);
+    updateMarketDisplay(mktRes.multiplier || 1.0);
+
+    document.getElementById("loading-overlay").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+
+    // Автооновлення ринку кожні 30 сек
+    setInterval(refreshMarket, 30000);
+  } catch (e) {
+    console.error("init error:", e);
+    document.querySelector(".loading-text").innerHTML = "❌ Помилка підключення до сервера.<br><small>" + e.message + "</small>";
+  }
+}
+
+// ═══════════════════════════════════════════════
+// ОНОВЛЕННЯ UI
+// ═══════════════════════════════════════════════
+function updateUI() {
+  if (!state) return;
+  const s = state;
+
+  // Хедер
+  document.getElementById("hdr-name").innerText  = s.name || "Гірник";
+  document.getElementById("hdr-coins").innerText = numFmt(s.coins);
+  document.getElementById("hdr-lvl").innerText   = "Рівень " + s.level;
+
+  // Профіль
+  document.getElementById("prof-name").innerText   = s.name || "Гірник";
+  document.getElementById("prof-prefix").innerText = s.prefix || "🆕[Гірник]";
+  document.getElementById("prof-lvl").innerText    = "Рівень " + s.level;
+  document.getElementById("stat-mined").innerText      = s.stats.mined || 0;
+  document.getElementById("stat-coins").innerText      = numFmt(s.coins) + " 🪙";
+  document.getElementById("stat-casino-win").innerText = numFmt(s.stats.win_casino || 0) + " 🪙";
+  document.getElementById("stat-casino-loss").innerText= numFmt(s.stats.loss_casino || 0) + " 🪙";
+
+  // Шахта
+  const invCount = s.inventory_count || 0;
+  const invSize  = s.inventory_size  || 15;
+  document.getElementById("mine-stat-mined").innerText = s.stats.mined || 0;
+  document.getElementById("mine-stat-pick").innerText  = s.pickaxe || "Руки";
+  document.getElementById("mine-stat-luck").innerText  = (s.luck_bonus || 0) + " 🍀";
+  document.getElementById("mine-stat-inv").innerText   = invCount + "/" + invSize;
+
+  // XP bar
+  const xpNeed = s.level * 500;
+  document.getElementById("xp-nums").innerText       = s.xp + " / " + xpNeed;
+  document.getElementById("xp-fill").style.width     = Math.min(100, (s.xp / xpNeed) * 100) + "%";
+
+  // Інвентар
+  document.getElementById("inv-badge").innerText     = invCount;
+  document.getElementById("inv-bar-lbl").innerText   = invCount + " / " + invSize;
+  const pct = (invCount / invSize) * 100;
+  document.getElementById("inv-bar-fill").style.width= Math.min(100, pct) + "%";
+  document.getElementById("inv-bar-fill").style.background =
+    pct >= 90 ? "var(--red)" : pct >= 60 ? "var(--amber)" : "var(--green)";
+}
+
+// ═══════════════════════════════════════════════
+// ВИДОБУТОК ⛏️
+// ═══════════════════════════════════════════════
+async function doMine(ev) {
+  if (isMining) return;
+  isMining = true;
+  const btn = document.getElementById("btn-mine");
+  btn.classList.add("cooldown");
+  btn.innerText = "⌛ Видобуток...";
+
+  try {
+    const data = await apiCall("/api/mine", "POST");
+
+    if (data.event === "collapse") {
+      // Обвал шахти
+      showToast(`💥 ОБВАЛ! Втрачено ${numFmt(data.loss)} 🪙`, true);
+      triggerScreenShake();
+      state = data.user;
+      updateUI();
+    } else if (data.event === "mined") {
+      state = data.user;
+      updateUI();
+      renderInventory();
+
+      // Визначаємо тип руди для відображення
+      const oreKey  = data.ore_key;
+      const oreName = data.ore_name;
+      const val     = data.value;
+      const xpGain  = data.xp_gained;
+      const rarClass= ORE_RARITY[oreKey] || "common";
+      const oreEmoji= oreName.split(" ")[0];
+
+      const resDiv = document.getElementById("mine-result");
+      resDiv.className = "mine-result show " + rarClass;
+      document.getElementById("res-ore").innerText  = oreEmoji;
+      document.getElementById("res-name").innerText = oreName;
+      document.getElementById("res-val").innerText  = "💰 " + numFmt(val) + " 🪙" + (data.multiplier > 1 ? " 🔥x2" : "");
+      document.getElementById("res-xp").innerText   = "⭐ +" + xpGain + " XP";
+
+      const evEl = document.getElementById("res-event");
+      if (data.mega_event) {
+        evEl.style.display = "inline-block";
+        evEl.innerText = data.mega_event === "Singularity" ? "🌀 СИНГУЛЯРНІСТЬ!" : "✨ БОЖЕСТВЕННА ЗНАХІДКА!";
+        triggerEpicFlash();
+      } else {
+        evEl.style.display = "none";
+      }
+
+      if (data.pick_broken) showToast("⚠️ Твоя кирка зламалася!", true);
+      if (data.leveled_up)  showToast("🎉 НОВИЙ РІВЕНЬ: " + data.new_level + "!", false);
+      if (data.tax > 0)     showToast("🏛 Податок: -" + numFmt(data.tax) + " 🪙");
+
+      createParticles(ev ? ev.clientX : 200, ev ? ev.clientY : 300, oreEmoji);
+    } else if (!data.ok) {
+      if (data.error === "inventory_full") showToast("🎒 Рюкзак переповнений! Продай руду.", true);
+      else showToast("❌ " + (data.message || data.error), true);
+    }
+  } catch(e) {
+    showToast("❌ Помилка сервера: " + e.message, true);
+  }
+
+  // Cooldown 2 сек
+  let cd = 2;
+  document.getElementById("mine-cd").classList.add("show");
+  document.getElementById("cd-sec").innerText = cd;
+  const timer = setInterval(() => {
+    cd--;
+    document.getElementById("cd-sec").innerText = cd;
+    if (cd <= 0) {
+      clearInterval(timer);
+      isMining = false;
+      btn.classList.remove("cooldown");
+      btn.innerText = "⛏ КОПАТИ!";
+      document.getElementById("mine-cd").classList.remove("show");
+    }
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════
+// ІНВЕНТАР
+// ═══════════════════════════════════════════════
+function renderInventory() {
+  const list = document.getElementById("inventory-list");
+  if (!state) return;
+  const ores  = state.inventory_ores  || {};
+  const items = state.inventory_items || [];
+
+  list.innerHTML = "";
+
+  let hasItems = false;
+  // Руда (ore_key → count)
+  for (const [key, count] of Object.entries(ores)) {
+    if (count <= 0) continue;
+    hasItems = true;
+    const ore = oreTypes[key] || { name: key };
+    const emoji = ore.name.split(" ")[0];
+    list.innerHTML += `
+      <div class="inv-item">
+        <div class="ore-icon">${emoji}</div>
+        <div class="ore-info">
+          <div class="ore-name">${ore.name}</div>
+          <div class="ore-cnt">${count} шт.</div>
+        </div>
+        <button class="btn-buy" style="font-size:11px;padding:7px 10px;" onclick="sellPartial('${key}',${count})">Продати</button>
+      </div>`;
+  }
+  // Крафтові предмети
+  for (const item of items) {
+    if (item.count <= 0) continue;
+    hasItems = true;
+    list.innerHTML += `
+      <div class="inv-item">
+        <div class="ore-icon">🔩</div>
+        <div class="ore-info">
+          <div class="ore-name">${item.name}</div>
+          <div class="ore-cnt">${item.count} шт. · вартість: ${numFmt(item.value)} 🪙</div>
+        </div>
+      </div>`;
+  }
+
+  if (!hasItems) {
+    list.innerHTML = `<div class="inv-empty"><span class="ie-icon">🪹</span><div>Склад порожній. Відправляйся в шахту!</div></div>`;
+  }
+}
+
+async function sellAll() {
+  try {
+    const data = await apiCall("/api/sell_all", "POST");
+    if (data.ok) {
+      state = data.user;
+      showToast("💰 Продано на " + numFmt(data.cash) + " 🪙!");
+      updateUI();
+      renderInventory();
+    } else {
+      showToast("❌ " + (data.error || "Помилка"), true);
+    }
+  } catch(e) {
+    showToast("❌ " + e.message, true);
+  }
+}
+
+async function sellPartial(oreKey, maxCount) {
+  const amt = prompt(`Скільки продати "${oreKey}"? (макс ${maxCount})`);
+  if (!amt) return;
+  const n = parseInt(amt);
+  if (isNaN(n) || n <= 0 || n > maxCount) { showToast("❌ Невірна кількість", true); return; }
+  try {
+    const data = await apiCall("/api/sell_partial", "POST", { ore_key: oreKey, amount: n });
+    if (data.ok) {
+      state = data.user;
+      showToast(`✅ Продано ${n} шт. → +${numFmt(data.profit)} 🪙`);
+      updateUI();
+      renderInventory();
+    } else {
+      showToast("❌ " + data.error, true);
+    }
+  } catch(e) {
+    showToast("❌ " + e.message, true);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// РИНОК
+// ═══════════════════════════════════════════════
+async function refreshMarket() {
+  try {
+    const data = await apiCall("/api/market");
+    if (!data.ok) return;
+    const mult = data.multiplier;
+    marketHistory = [...(data.history || []), mult];
+    if (marketHistory.length > 15) marketHistory = marketHistory.slice(-15);
+    generateSparkline(mult);
+    updateMarketDisplay(mult);
+  } catch(e) {}
+}
+
+function updateMarketDisplay(mult) {
+  document.getElementById("market-mult").innerText = "x" + mult.toFixed(2);
+  const statusEl = document.getElementById("market-status");
+  if (mult <= 0.3)      { statusEl.innerText = "💀 КРИЗА";    statusEl.className = "rate-status crash"; }
+  else if (mult < 1.0)  { statusEl.innerText = "🔴 Падіння";  statusEl.className = "rate-status crash"; }
+  else if (mult < 2.0)  { statusEl.innerText = "🟢 Стабільно";statusEl.className = "rate-status stable";}
+  else                  { statusEl.innerText = "🔥 БУМ";       statusEl.className = "rate-status boom";  }
+}
+
+function generateSparkline(currentMult) {
+  const chart = document.getElementById("spark-chart");
+  chart.innerHTML = "";
+  const data = [...marketHistory, currentMult || 1.0];
+  const maxVal = Math.max(...data, 0.01);
+  data.forEach((val, i) => {
+    const h = Math.max(4, (val / maxVal) * 100);
+    const bar = document.createElement("div");
+    bar.className = "spark-bar" + (i === data.length - 1 ? " active" : "");
+    bar.style.height = h + "%";
+    chart.appendChild(bar);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// МАГАЗИН
+// ═══════════════════════════════════════════════
+function switchShopCat(cat) {
+  currentShopCat = cat;
+  ["pick","bag","buff","special"].forEach(c => {
+    const el = document.getElementById("sc-" + c);
+    if (el) el.classList.toggle("active", c === cat);
+  });
+  renderShop();
+}
+
+function renderShop() {
+  const list = document.getElementById("shop-items-list");
+  list.innerHTML = "";
+  if (!shopItems || !state) return;
+
+  const catMap = { pick:"pick", bag:"bag", buff:"buff", special:"special", instant:"buff", artifact:"buff" };
+
+  for (const [id, item] of Object.entries(shopItems)) {
+    const mappedCat = catMap[item.type] || item.type;
+    if (mappedCat !== currentShopCat) continue;
+
+    const lvlOk = state.level >= (item.level || 1);
+    const canBuy = state.coins >= item.price && lvlOk;
+    let subText = "";
+    if (item.mult)         subText = "Множник: x" + item.mult;
+    else if (item.slots)   subText = "Слотів: " + item.slots;
+    else if (item.luck)    subText = "Удача: +" + item.luck;
+    else if (item.xp)      subText = "XP: +" + numFmt(item.xp);
+    else if (item.sell_mult)   subText = "Продаж: x" + item.sell_mult;
+    else if (item.double_chance) subText = "Подвійний дроп: +" + item.double_chance + "%";
+    else subText = item.type;
+
+    list.innerHTML += `
+      <div class="shop-item ${!lvlOk ? 'locked' : ''}">
+        <div class="si-icon">${getShopIcon(item.type)}</div>
+        <div class="si-body">
+          <div class="si-name">${item.name}</div>
+          <div class="si-sub">${subText}</div>
+          ${!lvlOk ? `<div class="si-sub" style="color:var(--red);">🔒 Рівень ${item.level}</div>` : ""}
+        </div>
+        <button class="btn-buy ${!canBuy ? 'locked' : ''}" onclick="buyItem('${id}')">
+          ${numFmt(item.price)} 🪙
+        </button>
+      </div>`;
+  }
+  if (!list.innerHTML) list.innerHTML = `<div class="inv-empty"><span class="ie-icon">🛒</span><div>Нічого в цій категорії</div></div>`;
+}
+
+function getShopIcon(type) {
+  return {pick:"⛏️",bag:"🎒",buff:"🧪",instant:"📜",artifact:"💎",special:"⭐"}[type] || "📦";
+}
+
+async function buyItem(itemId) {
+  try {
+    const data = await apiCall("/api/shop/buy", "POST", { item_id: itemId });
+    if (data.ok) {
+      state = data.user;
+      updateUI();
+      renderShop();
+      showToast("✅ Куплено! " + (Object.values(data.result)[0] || ""));
+    } else {
+      showToast("❌ " + data.error, true);
+    }
+  } catch(e) {
+    showToast("❌ " + e.message, true);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// КРАФТ / ТОП / АУКЦІОН
+// ═══════════════════════════════════════════════
+function switchExtraTab(tab) {
+  currentExtraTab = tab;
+  ["craft","top","auc"].forEach(t => {
+    document.getElementById("extra-"+t+"-view").style.display = t === tab ? "block" : "none";
+    document.getElementById("stab-"+t).classList.toggle("active", t === tab);
+  });
+  if (tab === "top")  loadTop();
+  if (tab === "auc")  showToast("⚖️ Аукціон доступний через бот");
+}
+
+async function loadExtra() {
+  renderCraft();
+}
+
+function renderCraft() {
+  const view = document.getElementById("extra-craft-view");
+  view.innerHTML = "";
+  if (!state || !craftRecipes) return;
+
+  const oreInv = state.inventory_ores  || {};
+  const itmInv = {};
+  (state.inventory_items || []).forEach(i => itmInv[i.name] = i.count);
+
+  for (const [id, recipe] of Object.entries(craftRecipes)) {
+    let tagsHtml = "", canCraft = true;
+    for (const [needName, needQty] of Object.entries(recipe.needs)) {
+      const have = oreInv[needName] || itmInv[needName] || 0;
+      const ok = have >= needQty;
+      if (!ok) canCraft = false;
+      tagsHtml += `<span class="need-tag ${ok ? 'ok' : 'miss'}">${needName} ${have}/${needQty}</span>`;
+    }
+    view.innerHTML += `
+      <div class="craft-item">
+        <div class="craft-name"><span>${recipe.name}</span><span class="craft-xp">+${recipe.xp} XP</span></div>
+        <div class="craft-needs">${tagsHtml}</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Цінність: ${numFmt(recipe.value)} 🪙</div>
+        <button class="btn-craft ${canCraft ? 'can' : 'cant'}" onclick="doCraft('${id}')">🛠️ СКРАФТИТИ</button>
+      </div>`;
+  }
+  if (!view.innerHTML) view.innerHTML = `<div class="inv-empty"><span class="ie-icon">🛠️</span><div>Рецепти завантажуються...</div></div>`;
+}
+
+async function doCraft(recipeId) {
+  try {
+    const data = await apiCall("/api/craft/make", "POST", { recipe_id: recipeId });
+    if (data.ok) {
+      state = data.user;
+      showToast("✅ Скрафчено: " + data.crafted + (data.leveled_up ? " 🎊 Новий рівень!" : ""));
+      updateUI();
+      renderInventory();
+      renderCraft();
+    } else {
+      showToast("❌ " + data.error, true);
+    }
+  } catch(e) {
+    showToast("❌ " + e.message, true);
+  }
+}
+
+async function loadTop() {
+  const view = document.getElementById("extra-top-view");
+  view.innerHTML = `<div class="inv-empty"><span class="spin">⚙️</span></div>`;
+  try {
+    const data = await apiCall("/api/top");
+    if (!data.ok) return;
+    view.innerHTML = `<div class="section-title">🏆 Топ ${data.total_players} гравців</div>`;
+    data.top.forEach((p, i) => {
+      view.innerHTML += `
+        <div class="top-item">
+          <span class="top-medal">${MEDALS[i] || (i+1)+"."}</span>
+          <div class="top-info">
+            <div class="top-name">${p.prefix ? "["+p.prefix+"] " : ""}${p.name}</div>
+            <div class="top-sub">Рівень ${p.level}</div>
+          </div>
+          <div class="top-val">${numFmt(p.coins)} 🪙</div>
+        </div>`;
+    });
+  } catch(e) {
+    view.innerHTML = `<div class="inv-empty">❌ Помилка завантаження</div>`;
+  }
+}
+
+async function loadClan() {
+  if (!state) return;
+  const noneEl   = document.getElementById("clan-section-none");
+  const joinedEl = document.getElementById("clan-section-joined");
+  if (!state.clan) {
+    noneEl.style.display   = "block";
+    joinedEl.style.display = "none";
+    return;
+  }
+  noneEl.style.display   = "none";
+  joinedEl.style.display = "block";
+  document.getElementById("clan-name-el").innerText = state.clan;
+  // Детальні дані про клан беремо зі стану (бекенд повертає їх через serialize_user)
+  // Якщо треба більше — додай окремий endpoint /api/clan
+}
+
+// ═══════════════════════════════════════════════
+// ІГРИ (Казино, Оракул, Яйце, Бонус)
+// ═══════════════════════════════════════════════
+function spinCasino() {
+  const bet = parseInt(document.getElementById("casino-bet").value);
+  if (!bet || bet < 100) { showToast("❌ Мінімальна ставка 100 🪙", true); return; }
+  if (!state || state.coins < bet) { showToast("❌ Недостатньо монет!", true); return; }
+
+  const reels = ["🍒","🍋","🔔","💎","7️⃣","💀"];
+  ["reel-1","reel-2","reel-3"].forEach(id => document.getElementById(id).classList.add("spinning"));
+
+  setTimeout(() => {
+    const [r1,r2,r3] = [0,1,2].map(() => reels[Math.floor(Math.random() * reels.length)]);
+    ["reel-1","reel-2","reel-3"].forEach((id, i) => {
+      const el = document.getElementById(id);
+      el.classList.remove("spinning");
+      el.innerText = [r1,r2,r3][i];
+    });
+
+    const pool = ["🍒","🍋","🔔","💎","7️⃣","💀"];
+    const allSame = r1===r2 && r2===r3;
+    const twosame = r1===r2 || r2===r3 || r1===r3;
+
+    let mult = 0, label = "💀 ПРОГРАШ";
+    if (r1==="7️⃣" && r2==="7️⃣" && r3==="7️⃣") { mult=30; label="🔥 МЕГА ДЖЕКПОТ!"; }
+    else if (allSame) { mult=5; label="💎 ТРИ В РЯД!"; }
+    else if (twosame) { mult=1.5; label="✅ ДВА В РЯД"; }
+
+    const gain = Math.floor(bet * mult);
+    // Оновлюємо локально (до підтвердження від сервера — UI-only оптимізація)
+    state.coins = Math.max(0, state.coins - bet + gain);
+    updateUI();
+
+    const resBox = document.getElementById("casino-res");
+    const out    = document.getElementById("c-out");
+    const amt    = document.getElementById("c-amt");
+    resBox.className = "game-result show";
+    out.innerText = label;
+    if (gain > bet) {
+      amt.className = "gr-amount win";
+      amt.innerText = "+" + numFmt(gain - bet) + " 🪙";
+    } else {
+      amt.className = "gr-amount loss";
+      amt.innerText = "-" + numFmt(bet - gain) + " 🪙";
+    }
+  }, 700);
+}
+
+async function consultOracle() {
+  try {
+    const data = await apiCall("/api/oracle", "POST");
+    if (!data.ok) return;
+    const lck = data.luck;
+    state = data.user;
+    document.getElementById("oracle-val").innerText    = lck + "%";
+    document.getElementById("oracle-fill").style.width = lck + "%";
+    let msg = "Магматичні пласти стабільні. Базова удача.";
+    if (lck > 80)      msg = "🔥 Потужний прилив! Шанси на рідкісну руду зростають!";
+    else if (lck > 50) msg = "✨ Хороші вібрації надр. Удача на висоті.";
+    else if (lck < 20) msg = "⚠️ Темна матерія згущується. Будь обережний.";
+    document.getElementById("oracle-msg").innerText = msg;
+    updateUI();
+    showToast("🔮 Бафф удачі: " + lck + "/100");
+  } catch(e) {
+    showToast("❌ " + e.message, true);
+  }
+}
+
+async function clickEgg() {
+  const icon = document.getElementById("egg-icon");
+  icon.classList.add("shake");
+  setTimeout(() => icon.classList.remove("shake"), 400);
+
+  try {
+    // Яйце через API — воно сервером керується (cooldown 2 хв)
+    // Просто показуємо що результат прийде від сервера
+    // Тут достатньо показати що яйце "розбите" і перенаправити до бота
+    document.getElementById("egg-result").innerText = "⏳ Результат в боті!";
+    showToast("🥚 Використай /egg через бот для повного результату!");
+  } catch(e) {}
+}
+
+async function claimBonus() {
+  try {
+    const data = await apiCall("/api/bonus/claim", "POST");
+    if (data.claimed) {
+      state = data.user;
+      updateUI();
+      showToast("🎁 Бонус отримано: +" + numFmt(data.reward) + " 🪙!");
+      const btn = document.getElementById("btn-claim-bonus");
+      btn.disabled = true;
+      btn.innerText = "✅ Забрано";
+      document.getElementById("bonus-timer").innerText = "Наступний через 24 години";
+    } else {
+      const h = Math.floor(data.remaining_seconds / 3600);
+      const m = Math.floor((data.remaining_seconds % 3600) / 60);
+      document.getElementById("bonus-timer").innerText = `⏳ Через ${h}г ${m}хв`;
+      document.getElementById("btn-claim-bonus").disabled = true;
+      document.getElementById("btn-claim-bonus").innerText = `Через ${h}г ${m}хв`;
+      showToast(`⏳ Наступний бонус через ${h} год ${m} хв`);
+    }
+  } catch(e) {
+    showToast("❌ " + e.message, true);
+  }
+}
+
+async function applyPromo() {
+  const code = document.getElementById("promo-input").value.trim().toUpperCase();
+  if (!code) return;
+  try {
+    const data = await apiCall("/api/promo", "POST", { code });
+    if (data.valid) {
+      state = data.user;
+      updateUI();
+      showToast("✅ Промокод активовано! +" + numFmt(data.reward) + " " + data.reward_type);
+      document.getElementById("promo-input").value = "";
+    } else {
+      showToast("❌ " + data.message, true);
+    }
+  } catch(e) {
+    showToast("❌ " + e.message, true);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// НАВІГАЦІЯ
+// ═══════════════════════════════════════════════
+function switchPage(pageId, tabEl) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach(t  => t.classList.remove("active"));
+  document.getElementById("page-" + pageId).classList.add("active");
+  tabEl.classList.add("active");
+  // Оновлюємо дані при переключенні
+  if (pageId === "inventory") renderInventory();
+  if (pageId === "shop")      renderShop();
+}
+
+function openModal(id) { document.getElementById("modal-"+id).classList.add("open"); loadModalData(id); }
+function closeModal(id){ document.getElementById("modal-"+id).classList.remove("open"); }
+
+async function loadModalData(id) {
+  if (id === "bonus") {
+    try {
+      const data = await apiCall("/api/bonus/status");
+      const btn  = document.getElementById("btn-claim-bonus");
+      if (data.available) {
+        document.getElementById("bonus-timer").innerText = "✅ Доступно зараз!";
+        btn.disabled = false;
+        btn.innerText = "ЗАБРАТИ БОНУС";
+      } else {
+        const h = Math.floor(data.remaining_seconds / 3600);
+        const m = Math.floor((data.remaining_seconds % 3600) / 60);
+        document.getElementById("bonus-timer").innerText = `⏳ Через ${h}г ${m}хв`;
+        btn.disabled = true;
+        btn.innerText = `Через ${h}г ${m}хв`;
+      }
+    } catch(e) {}
+  }
+}
+
+// ═══════════════════════════════════════════════
+// ВІЗУАЛЬНІ ЕФЕКТИ
+// ═══════════════════════════════════════════════
+function showToast(text, isDanger = false) {
+  const t = document.getElementById("toast");
+  t.innerText = text;
+  t.style.borderColor = isDanger ? "var(--red)" : "var(--border)";
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+function createParticles(x, y, emoji) {
+  const container = document.getElementById("particles");
+  for (let i = 0; i < 4; i++) {
+    const p = document.createElement("div");
+    p.className  = "particle";
+    p.innerText  = emoji;
+    p.style.left = (x + (Math.random() * 40 - 20)) + "px";
+    p.style.top  = (y + (Math.random() * 40 - 20)) + "px";
+    container.appendChild(p);
+    setTimeout(() => p.remove(), 800);
+  }
+}
+
+function triggerScreenShake() {
+  const b = document.body;
+  const shakes = [10,-10,8,-8,5,-5,0];
+  shakes.forEach((s, i) => {
+    setTimeout(() => {
+      b.style.transform = `translateX(${s}px) translateY(${s/2}px)`;
+    }, i * 50);
+  });
+}
+
+function triggerEpicFlash() {
+  const f = document.createElement("div");
+  Object.assign(f.style, {
+    position:"fixed",inset:"0",
+    background:"radial-gradient(circle,rgba(245,166,35,0.8) 0%,transparent 80%)",
+    zIndex:"999",pointerEvents:"none",opacity:"1",transition:"opacity 0.6s ease"
+  });
+  document.body.appendChild(f);
+  setTimeout(() => { f.style.opacity = "0"; setTimeout(() => f.remove(), 600); }, 50);
+}
+
+// ═══════════════════════════════════════════════
+// УТИЛІТИ
+// ═══════════════════════════════════════════════
+function numFmt(n) {
+  if (!n && n !== 0) return "0";
+  n = parseInt(n);
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + "B";
+  if (n >= 1_000_000)     return (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000)         return (n / 1_000).toFixed(1) + "k";
+  return n.toLocaleString();
+}
+
+// ═══════════════════════════════════════════════
+// СТАРТ
+// ═══════════════════════════════════════════════
+window.onload = init;
+</script>
+</body>
+</html>
+HTMLEOF
+echo "Done: $(wc -c < /home/claude/index.html) bytes"
